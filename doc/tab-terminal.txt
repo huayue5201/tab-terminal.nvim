@@ -1,0 +1,100 @@
+*tab-terminal.txt*  Per-tab terminals for Neovim
+
+==============================================================================
+CONTENTS                                              *tab-terminal-contents*
+
+  1. Intro ........................................ |tab-terminal-intro|
+  2. Setup ........................................ |tab-terminal-setup|
+  3. Keys ......................................... |tab-terminal-keys|
+  4. Commands ..................................... |tab-terminal-commands|
+  5. Foreign terminals ............................ |tab-terminal-foreign|
+  6. Integrations ................................. |tab-terminal-integrations|
+
+==============================================================================
+1. INTRO                                              *tab-terminal-intro*
+
+One terminal set per tab (workspace). The bottom panel can be hidden without
+killing the shell. An optional sidebar lists terminals of all tabs, grouped by
+workspace name, with a "+" button on each group header that opens a terminal in
+that workspace. Foreign terminals (dap, toggleterm, ...) are never adopted.
+
+==============================================================================
+2. SETUP                                              *tab-terminal-setup*
+
+>lua
+require("tab_terminal").setup({
+  position = "bot",          -- "bot" | "top"
+  size = 18,
+  startinsert = true,
+  show_tabs = true,
+  sidebar = true,
+  sidebar_width = 22,
+  sidebar_plus_icon = "+",
+  cwd = function(tab) return nil end,          -- nil => tab cwd
+  workspace_name = function(tab) return nil end, -- nil => cwd basename
+  keys = {
+    toggle = { "<C-;>", "<leader>To" },
+    new = "<leader>TN",
+    select = "<leader>Ts",
+    rename = "<leader>Tn",
+    tabs = "<leader>Tt",
+    kill = "<leader>Tk",
+    kill_all = "<leader>TK",
+    prev = "<",
+    next = ">",
+  },
+  quick_shell = false,
+})
+<
+Global keys are opt-in and may be a string or a list. `false` disables a key.
+
+==============================================================================
+3. KEYS                                               *tab-terminal-keys*
+
+In addition to the global keys above, terminals created by this plugin get
+buffer-local mappings:
+
+  <Esc>            leave terminal mode only when the shell is at the prompt
+  <C-Esc>          unconditional leave terminal mode
+  <C-h> <C-j> <C-k> <C-l>   window navigation
+  <C-w>            window prefix
+  <C-t>            new terminal
+  <C-PageUp>       next terminal
+  <C-PageDown>     previous terminal
+  <A-1>..<A-9>     select terminal by index
+  <  >             (normal mode) previous / next terminal
+
+`<` and `>` are buffer-local only; no global mapping is created.
+
+==============================================================================
+4. COMMANDS                                       *tab-terminal-commands*
+
+:TabTerminal [toggle|new|select|rename [name]|tabs|kill|kill-all]
+    Operate on the current workspace's terminals.
+
+:checkhealth tab_terminal
+    Show tracked terminals and configured keys.
+
+==============================================================================
+5. FOREIGN TERMINALS                             *tab-terminal-foreign*
+
+Core rules:
+  1. terminal buffer with a filetype other than "tab_terminal" is foreign;
+  2. a window with 'winfixbuf' is foreign.
+
+>lua
+require("tab_terminal").register_foreign_rule({
+  name = "toggleterm",
+  match = function(ctx) return ctx.ft == "toggleterm" end,
+})
+<
+ctx fields: bufnr, ft, buftype, name, wins.
+
+==============================================================================
+6. INTEGRATIONS                               *tab-terminal-integrations*
+
+resession:
+  require("tab_terminal.sidebar").restore_win(win)
+  require("tab_terminal").restore_win(win, is_panel)
+
+vim:tw=78:ts=8:noet:ft=help:norl:
