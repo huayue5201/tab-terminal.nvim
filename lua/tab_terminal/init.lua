@@ -432,22 +432,30 @@ local function open_panel(bufnr, tab)
 	end
 	if win then
 		attach(win, bufnr, tab)
-		api.nvim_set_current_win(win)
-		if opts.sidebar then
-			sidebar.open(win, tab)
+		-- attach 会触发 BufEnter/WinEnter 一串 autocmd，别的插件（neotest 的浮动
+		-- 输出窗 auto_close、布局守卫…）可能就在这中间把窗口收掉；后面每一步都
+		-- 必须重新确认窗口还在，否则就是 E5108
+		if api.nvim_win_is_valid(win) then
+			api.nvim_set_current_win(win)
+			if opts.sidebar then
+				sidebar.open(win, tab)
+			end
 		end
 		return win
 	end
 	-- 从「能安全切分的窗口」切一条出来，再换成终端 buffer
 	local base = base_win(tab)
-	if base then
+	if base and api.nvim_win_is_valid(base) then
 		api.nvim_set_current_win(base)
 	end
 	vim.cmd((opts.position == "top" and "topleft " or "botright ") .. "split")
 	win = api.nvim_get_current_win()
+	if not api.nvim_win_is_valid(win) then
+		return win
+	end
 	api.nvim_win_set_height(win, opts.size)
 	attach(win, bufnr, tab)
-	if opts.sidebar then
+	if opts.sidebar and api.nvim_win_is_valid(win) then
 		sidebar.open(win, tab)
 	end
 	return win

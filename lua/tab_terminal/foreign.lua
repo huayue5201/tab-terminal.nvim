@@ -132,6 +132,21 @@ M.register({
 	end,
 })
 
+-- 通用规则：没有宿主 job 的「假终端」。
+-- 典型是「把命令输出灌进 nvim_open_term() 的 buffer，再丢进浮窗显示」的插件
+-- （neotest 的 test output、各种 preview/console 面板）。它们没有 shell 可管，
+-- 收编进来只会把别人的浮窗内容改名成 Term (N)、抢走活动终端；浮窗一关就留下
+-- 一个「假面板」，下一次 C-; / 侧栏重开时拿到已失效的窗口句柄（E5108）。
+-- 判据用 terminal_job_id：termopen() 建的终端它有值（进程退出后仍在），
+-- nvim_open_term() 建的 buffer 永远是 nil。
+M.register({
+	name = "no-host-job",
+	desc = "buftype=terminal 但没有关联 job（输出缓冲被当终端显示）",
+	match = function(ctx)
+		return ctx.buftype == "terminal" and vim.b[ctx.bufnr].terminal_job_id == nil
+	end,
+})
+
 -- 通用规则：显示在 'winfixbuf' 窗口里的终端。窗口被锁在自己的 buffer 上，
 -- 反过来也就说明它不归我们调度（换 buffer 会 E1513）。
 M.register({

@@ -544,21 +544,48 @@ end
 --- 在 panel 窗口右侧开侧栏（已有则复用）
 ---@param panel_win integer
 ---@param tab integer
----@return integer win
+---@return integer|nil win
 function M.open(panel_win, tab)
 	ensure_buf()
 	local win = M.win(tab)
 	if not win then
 		-- 从终端面板窗口纵向切一刀：底部分屏被切成 [终端 | 侧栏]
-		api.nvim_set_current_win(panel_win)
-		vim.cmd("vsplit")
+		-- panel 句柄可能已经失效（面板被别的窗口事件收掉、会话恢复的临时窗口…），
+		-- 这时退回到当前窗口当基准，绝不再拿死句柄去 set_current_win（E5108）
+		local base = panel_win
+		if not api.nvim_win_is_valid(base) then
+			base = api.nvim_get_current_win()
+		end
+		local ok = api.nvim_win_is_valid(base)
+			and pcall(function()
+				api.nvim_set_current_win(base)
+				vim.cmd("vsplit")
+			end)
+		if not ok then
+			return
+		end
 		win = api.nvim_get_current_win()
+		if not api.nvim_win_is_valid(win) then
+			return
+		end
 		vim.w[win].tab_term_sidebar = true
-		api.nvim_win_set_buf(win, buf)
-		apply_win_opts(win)
+		-- set_buf 会进 BufEnter/WinEnter 一串 autocmd：别的插件（neotest 浮动输出窗
+		-- auto_close、布局守卫…）可能在这中间把侧栏窗口收掉，出错只当“没切成”
+		local ok2 = pcall(function()
+			api.nvim_win_set_buf(win, buf)
+			apply_win_opts(win)
+		end)
+		if not ok2 or not api.nvim_win_is_valid(win) then
+			return
+		end
+	end
+	if not api.nvim_win_is_valid(win) then
+		return
 	end
 	api.nvim_win_set_width(win, M.config.width)
-	api.nvim_set_current_win(panel_win)
+	if api.nvim_win_is_valid(panel_win) then
+		api.nvim_set_current_win(panel_win)
+	end
 	M.render()
 	return win
 end
