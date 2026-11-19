@@ -24,18 +24,20 @@ Requires **Neovim >= 0.10** (uses `winfixbuf`, `vim.keymap.set`, `vim.pack`-frie
 
 ## Installation
 
-With `vim.pack` (Neovim 0.12+) / any plugin manager:
+With `vim.pack` (Neovim 0.12+):
 
 ```lua
-vim.pack.add({ { src = "https://github.com/huayue5201/tab-terminal.nvim" } })
-
+vim.pack.add({ "https://github.com/huayue5201/tab-terminal.nvim" })
 require("tab_terminal").setup()
 ```
 
-Local checkout:
+With lazy.nvim:
 
 ```lua
-require("tab_terminal").setup({})
+{
+  "huayue5201/tab-terminal.nvim",
+  opts = {},
+}
 ```
 
 ## Setup
